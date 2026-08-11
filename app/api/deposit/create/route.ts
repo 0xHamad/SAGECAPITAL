@@ -25,12 +25,25 @@ export async function POST(req: Request) {
     // Check if this tx_hash has already been used by anyone
     const { data: existing } = await adminClient
       .from('deposits')
-      .select('id')
+      .select('id, user_id, status, np_order_id')
       .eq('np_payment_id', cleanHash)
       .limit(1)
 
     if (existing && existing.length > 0) {
-      return NextResponse.json({ error: 'This transaction hash has already been used or claimed' }, { status: 400 })
+      const deposit = existing[0]
+      if (deposit.status === 'finished') {
+        return NextResponse.json({ error: 'This transaction hash has already been used or claimed' }, { status: 400 })
+      } else if (deposit.status === 'waiting') {
+        if (deposit.user_id !== session.user.id) {
+          return NextResponse.json({ error: 'This transaction hash is already pending for another user' }, { status: 400 })
+        }
+        // If it's the same user and it's waiting, just return the existing order to resume polling!
+        return NextResponse.json({
+          payment_id: cleanHash,
+          order_id: deposit.np_order_id,
+          expires_at: new Date(Date.now() + 10 * 60000).toISOString()
+        })
+      }
     }
 
     const masterWallet = process.env.MASTER_WALLET_ADDRESS || "0x951f08258E53F69a368EFB9D923dC6d19416e50c"

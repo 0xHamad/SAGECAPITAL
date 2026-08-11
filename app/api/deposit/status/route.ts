@@ -80,6 +80,28 @@ export async function GET(req: Request) {
 
             if (toAddress.toLowerCase() === deposit.pay_address.toLowerCase()) {
               // Found the transfer to our master wallet!
+
+              // Let's check how old this transaction is using its blockNumber
+              const blockNumberHex = data.result.blockNumber;
+              if (blockNumberHex) {
+                const blockUrl = `https://api.bscscan.com/api?module=proxy&action=eth_getBlockByNumber&tag=${blockNumberHex}&boolean=false&apikey=${BSCSCAN_API_KEY}`
+                try {
+                  const blockRes = await fetch(blockUrl)
+                  const blockData = await blockRes.json()
+                  if (blockData.result && blockData.result.timestamp) {
+                    const txTimeMs = parseInt(blockData.result.timestamp, 16) * 1000
+                    const fifteenMinsAgo = Date.now() - (15 * 60 * 1000)
+                    if (txTimeMs < fifteenMinsAgo) {
+                      // Transaction is too old
+                      await adminClient.from('deposits').update({ status: 'rejected' }).eq('id', deposit.id)
+                      return NextResponse.json({ error: 'This transaction is older than 15 minutes and cannot be claimed.' }, { status: 400 })
+                    }
+                  }
+                } catch (e) {
+                  console.error('Failed to verify block time', e)
+                }
+              }
+
               const amountHex = log.data
               const amount = parseInt(amountHex, 16) / 1e18 // Convert from Wei
               

@@ -235,6 +235,14 @@ export function Wallet({ styles, copied, copyLink }: { styles: ReturnType<typeof
         if (data.status === 'finished') {
           setDepositData((prev: any) => ({ ...prev, status: 'finished' }))
           clearInterval(poll)
+        } else if (data.error) {
+          setError(data.error)
+          setDepositData(null)
+          clearInterval(poll)
+        } else if (data.status === 'rejected') {
+          setError('Transaction was rejected.')
+          setDepositData(null)
+          clearInterval(poll)
         }
       } catch (e) {}
     }, 5000) // Poll every 5 seconds
