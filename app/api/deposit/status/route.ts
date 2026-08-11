@@ -35,9 +35,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Deposit not found' }, { status: 404 })
     }
 
-    // 2. If already finished, return immediately
+    // 2. If already finished or rejected, return immediately
     if (deposit.status === 'finished') {
       return NextResponse.json({ status: 'finished' })
+    }
+    if (deposit.status === 'rejected') {
+      return NextResponse.json({ status: 'rejected', error: 'This transaction was rejected because it is older than 15 minutes.' })
     }
 
     // 3. If expired, return immediately
