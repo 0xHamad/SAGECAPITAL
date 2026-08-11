@@ -79,7 +79,7 @@ export default function DashboardPage() {
             .eq('status', 'waiting')
             .order('created_at', { ascending: false })
             .limit(1)
-            .single()
+            .maybeSingle()
 
           let activeDeposit = null
           if (latestDeposit) {
