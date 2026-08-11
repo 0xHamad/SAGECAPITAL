@@ -49,20 +49,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: 'expired' })
     }
 
-    // 4. Fetch the exact transaction receipt (Real-time, bypasses BscScan cache)
-    if (!BSCSCAN_API_KEY) {
-      console.warn('BSCSCAN_API_KEY is not set')
-      return NextResponse.json({ status: deposit.status }) 
-    }
-
+    // 4. Fetch the exact transaction receipt (Real-time, bypasses BscScan cache) via Public RPC
     const submittedTxHash = deposit.np_payment_id?.toLowerCase()
     if (!submittedTxHash) {
       return NextResponse.json({ status: deposit.status })
     }
 
-    const url = `https://api.bscscan.com/api?module=proxy&action=eth_getTransactionReceipt&txhash=${submittedTxHash}&apikey=${BSCSCAN_API_KEY}`
-    
-    const res = await fetch(url)
+    const RPC_URL = 'https://bsc-dataseed.binance.org/'
+
+    const rpcPayload = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_getTransactionReceipt',
+      params: [submittedTxHash]
+    }
+
+    const res = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rpcPayload)
+    })
     const data = await res.json()
 
     if (data.result && data.result.logs) {
@@ -81,12 +87,22 @@ export async function GET(req: Request) {
             if (toAddress.toLowerCase() === deposit.pay_address.toLowerCase()) {
               // Found the transfer to our master wallet!
 
-              // Let's check how old this transaction is using its blockNumber
+              // Let's check how old this transaction is using its blockNumber via RPC
               const blockNumberHex = data.result.blockNumber;
               if (blockNumberHex) {
-                const blockUrl = `https://api.bscscan.com/api?module=proxy&action=eth_getBlockByNumber&tag=${blockNumberHex}&boolean=false&apikey=${BSCSCAN_API_KEY}`
+                const blockPayload = {
+                  jsonrpc: '2.0',
+                  id: 1,
+                  method: 'eth_getBlockByNumber',
+                  params: [blockNumberHex, false]
+                }
+                
                 try {
-                  const blockRes = await fetch(blockUrl)
+                  const blockRes = await fetch(RPC_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(blockPayload)
+                  })
                   const blockData = await blockRes.json()
                   if (blockData.result && blockData.result.timestamp) {
                     const txTimeMs = parseInt(blockData.result.timestamp, 16) * 1000
