@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY
 const API_URL = 'https://api.nowpayments.io/v1/payment'
@@ -51,8 +52,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Payment gateway error', details: npData }, { status: 500 })
     }
 
-    // Save initial deposit record as 'waiting'
-    const { error: dbError } = await supabase.from('deposits').insert({
+    // Save initial deposit record as 'waiting' using Admin Client to bypass RLS
+    const adminClient = createAdminClient()
+    const { error: dbError } = await adminClient.from('deposits').insert({
       user_id: session.user.id,
       np_payment_id: npData.payment_id.toString(),
       np_order_id: order_id,
