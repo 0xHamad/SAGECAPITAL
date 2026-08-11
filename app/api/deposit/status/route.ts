@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY
 const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955' // BSC USDT BEP20
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)

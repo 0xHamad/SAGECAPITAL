@@ -230,7 +230,10 @@ export function Wallet({ styles, copied, copyLink }: { styles: ReturnType<typeof
     if (!depositData || depositData.status === 'finished' || timeLeft === 'Expired') return
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/deposit/status?id=${depositData.order_id || depositData.np_order_id}`)
+        const res = await fetch(`/api/deposit/status?id=${depositData.order_id || depositData.np_order_id}&t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        })
         const data = await res.json()
         if (data.status === 'finished') {
           setDepositData((prev: any) => ({ ...prev, status: 'finished' }))
