@@ -63,55 +63,48 @@ export async function GET(req: Request) {
     if (data.status === '1' && data.result) {
       const transactions = data.result
       
-      // Allow a small timestamp buffer. Only check txs that happened AFTER deposit creation
-      const depositTime = new Date(deposit.created_at).getTime() / 1000 - 60 
+      const submittedTxHash = deposit.np_payment_id?.toLowerCase()
+      if (!submittedTxHash) {
+        return NextResponse.json({ status: deposit.status })
+      }
 
       for (const tx of transactions) {
         if (
-          tx.to.toLowerCase() === deposit.pay_address.toLowerCase() &&
-          parseInt(tx.timeStamp) >= depositTime
+          tx.hash.toLowerCase() === submittedTxHash &&
+          tx.to.toLowerCase() === deposit.pay_address.toLowerCase()
         ) {
-          const value = parseFloat(tx.value) / 1e18 // Convert from Wei
+          const amount = parseFloat(tx.value) / 1e18 // Convert from Wei
           
-          // Check if exact decimal match
-          if (Math.abs(value - deposit.amount_crypto) < 0.0001) {
-            
-            // Ensure this tx hasn't already been processed for another deposit
-            const { data: existingTx } = await adminClient
-              .from('deposits')
-              .select('id')
-              .eq('np_payment_id', tx.hash)
-              .limit(1)
+          // WE HAVE A MATCH! Confirm the deposit!
+          
+          // A. Update deposit status and real amount
+          await adminClient
+            .from('deposits')
+            .update({ 
+              status: 'finished', 
+              amount_usd: amount,
+              amount_crypto: amount 
+            })
+            .eq('id', deposit.id)
 
-            if (!existingTx || existingTx.length === 0) {
-              // WE HAVE A MATCH! Confirm the deposit!
-              
-              // A. Update deposit status
-              await adminClient
-                .from('deposits')
-                .update({ status: 'finished', np_payment_id: tx.hash })
-                .eq('id', deposit.id)
+          // B. Update user balance
+          const { data: userData } = await adminClient
+            .from('users')
+            .select('total_balance, total_deposited')
+            .eq('id', session.user.id)
+            .single()
 
-              // B. Update user balance
-              const { data: userData } = await adminClient
-                .from('users')
-                .select('total_balance, total_deposited')
-                .eq('id', session.user.id)
-                .single()
-
-              if (userData) {
-                await adminClient
-                  .from('users')
-                  .update({
-                    total_balance: (userData.total_balance || 0) + deposit.amount_usd,
-                    total_deposited: (userData.total_deposited || 0) + deposit.amount_usd
-                  })
-                  .eq('id', session.user.id)
-              }
-
-              return NextResponse.json({ status: 'finished' })
-            }
+          if (userData) {
+            await adminClient
+              .from('users')
+              .update({
+                total_balance: (userData.total_balance || 0) + amount,
+                total_deposited: (userData.total_deposited || 0) + amount
+              })
+              .eq('id', session.user.id)
           }
+
+          return NextResponse.json({ status: 'finished' })
         }
       }
     }

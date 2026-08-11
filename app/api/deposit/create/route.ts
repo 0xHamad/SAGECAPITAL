@@ -12,42 +12,25 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { amount } = body
-    const baseAmount = Math.floor(amount)
+    const { tx_hash } = body
 
-    if (!baseAmount || baseAmount < 1) {
-      return NextResponse.json({ error: 'Minimum deposit is $1' }, { status: 400 })
+    if (!tx_hash || typeof tx_hash !== 'string' || tx_hash.length < 10) {
+      return NextResponse.json({ error: 'Invalid transaction hash' }, { status: 400 })
     }
+
+    const cleanHash = tx_hash.trim()
 
     const adminClient = createAdminClient()
-    let uniqueAmountCrypto = 0
-    let attempts = 0
-    let foundUnique = false
+    
+    // Check if this tx_hash has already been used by anyone
+    const { data: existing } = await adminClient
+      .from('deposits')
+      .select('id')
+      .eq('np_payment_id', cleanHash)
+      .limit(1)
 
-    // Try to find a unique decimal between .010 and .099
-    while (attempts < 50 && !foundUnique) {
-      const randomDecimal = Math.floor(Math.random() * 90 + 10) / 1000 // .010 to .099
-      const candidateAmount = parseFloat((baseAmount + randomDecimal).toFixed(3))
-      
-      // Check if this exact amount is currently "waiting" within the last 15 mins
-      const fifteenMinsAgo = new Date(Date.now() - 15 * 60000).toISOString()
-      const { data: existing } = await adminClient
-        .from('deposits')
-        .select('id')
-        .eq('amount_crypto', candidateAmount)
-        .eq('status', 'waiting')
-        .gte('created_at', fifteenMinsAgo)
-        .limit(1)
-
-      if (!existing || existing.length === 0) {
-        uniqueAmountCrypto = candidateAmount
-        foundUnique = true
-      }
-      attempts++
-    }
-
-    if (!foundUnique) {
-      return NextResponse.json({ error: 'System busy, please try again in a minute' }, { status: 503 })
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: 'This transaction hash has already been used or claimed' }, { status: 400 })
     }
 
     const masterWallet = process.env.MASTER_WALLET_ADDRESS
@@ -61,10 +44,10 @@ export async function POST(req: Request) {
     // Save initial deposit record as 'waiting' using Admin Client
     const { error: dbError } = await adminClient.from('deposits').insert({
       user_id: session.user.id,
-      np_payment_id: null,
+      np_payment_id: cleanHash, // We use np_payment_id to store the tx_hash
       np_order_id: external_order_id,
-      amount_usd: baseAmount,
-      amount_crypto: uniqueAmountCrypto,
+      amount_usd: 0, // Will be updated upon confirmation
+      amount_crypto: 0, // Will be updated upon confirmation
       coin: 'USDTBSC',
       pay_address: masterWallet,
       status: 'waiting'
@@ -75,13 +58,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
-    const expires_at = new Date(Date.now() + 15 * 60000).toISOString()
+    const expires_at = new Date(Date.now() + 10 * 60000).toISOString() // 10 minutes timeout to poll
 
     return NextResponse.json({
-      payment_id: external_order_id, // we use order id as payment_id for polling
-      pay_address: masterWallet,
-      pay_amount: uniqueAmountCrypto.toString(),
-      pay_currency: 'USDTBSC',
+      payment_id: cleanHash, // we use tx_hash as payment_id for polling
       order_id: external_order_id,
       expires_at: expires_at
     })
