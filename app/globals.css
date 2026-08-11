@@ -1,0 +1,23 @@
+/* Fluent UI v9 styles components via Griffel (CSS-in-JS).
+   Global CSS stays minimal: a reset and full-height shell only.
+   All colors, typography, and spacing come from Fluent design tokens. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#__fluent-root {
+  min-height: 100vh;
+}
+
+.logo-wrap { display: flex; align-items: center; gap: 10px; }
+.logo-mark { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #7c3aed, #3b82f6); box-shadow: 0 8px 18px rgba(99,72,220,.25); }
+.logo-name { font-size: 16px; font-weight: 800; background: linear-gradient(90deg, #7c3aed, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.logo-sub { color: #8a93a5; font-size: 11px; }
