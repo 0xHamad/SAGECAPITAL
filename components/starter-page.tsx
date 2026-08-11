@@ -111,7 +111,24 @@ const plans = [
 
 function Logo() { return <div className="logo-wrap"><div className="logo-mark"><ShieldCheckmark24Regular /></div><div><div className="logo-name">SageCapital</div><div className="logo-sub">Investment Platform</div></div></div> }
 
-export function StarterPage() {
+export interface StarterPageProps {
+  userName: string
+  userEmail: string
+  userData: {
+    totalBalance: number
+    withdrawable: number
+    totalDeposited: number
+    totalEarned: number
+    referralIncome: number
+    activePlans: Array<{ name: string; amount: number; returnRange: string; lastWeekPct: number; lastWeekEarned: number }>
+    recentActivity: Array<{ description: string; sub: string; amount: string; date: string; status: string }>
+    referralCount: number
+    referralCode: string
+  }
+  onSignOut: () => void
+}
+
+export function StarterPage({ userName, userEmail, userData, onSignOut }: StarterPageProps) {
   const styles = useStyles()
   const [active, setActive] = React.useState('Dashboard')
   const [copied, setCopied] = React.useState(false)
@@ -130,12 +147,12 @@ export function StarterPage() {
       <Input className={styles.search} contentBefore={<Search24Regular />} placeholder="Search" />
       <nav className={styles.nav} aria-label="Primary navigation">{navItems.map(([label, NavIcon]) => <Button key={label} appearance="subtle" className={mergeClasses(styles.navButton, active === label && styles.navActive)} icon={<NavIcon />} onClick={() => setActive(label)}>{label}</Button>)}</nav>
       <Divider />
-      <div className={styles.sidebarBottom}><Button appearance="subtle" className={styles.navButton} icon={<Alert24Regular />}>Support</Button><Button appearance="subtle" className={styles.navButton} icon={<ArrowRight24Regular />}>Sign Out</Button></div>
+      <div className={styles.sidebarBottom}><Button appearance="subtle" className={styles.navButton} icon={<Alert24Regular />}>Support</Button><Button appearance="subtle" className={styles.navButton} icon={<ArrowRight24Regular />} onClick={onSignOut}>Sign Out</Button></div>
     </aside>}
     <div className={styles.content}>
-      <header className={styles.topbar}><div className={styles.crumb}>SageCapital <span aria-hidden>›</span> <strong>{active}</strong></div><div className={styles.user}><CounterBadge count={3} color="danger" size="small"><Alert24Regular /></CounterBadge><Avatar name="Jordan Lee" color="brand" size={32} /><Body2>Jordan Lee</Body2><ChevronDown16Regular /></div></header>
+      <header className={styles.topbar}><div className={styles.crumb}>SageCapital <span aria-hidden>›</span> <strong>{active}</strong></div><div className={styles.user}><CounterBadge count={3} color="danger" size="small"><Alert24Regular /></CounterBadge><Avatar name={userName} color="brand" size={32} /><Body2>{userName}</Body2><ChevronDown16Regular /></div></header>
       <main className={styles.main}>
-        {active === 'Dashboard' && <Dashboard styles={styles} />}
+        {active === 'Dashboard' && <Dashboard styles={styles} userData={userData} />}
         {active === 'My Plans' && <Plans styles={styles} />}
         {active === 'Wallet' && <Wallet styles={styles} copied={copied} copyLink={copyLink} />}
         {active === 'Referrals' && <Referrals styles={styles} copied={copied} copyLink={copyLink} />}
@@ -146,9 +163,9 @@ export function StarterPage() {
   </div>
 }
 
-function Dashboard({ styles }: { styles: ReturnType<typeof useStyles> }) { return <>
+function Dashboard({ styles, userData }: { styles: ReturnType<typeof useStyles>; userData: StarterPageProps['userData'] }) { const money = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; return <>
   <section className={styles.hero}><div className={styles.globe} /><div className={styles.heroContent}><Badge appearance="tint" color="success">⚡ Auto Trading Active</Badge><div className={styles.heroTitle}>Your Capital is Working 24/7</div><Body1 className={styles.heroText}>AI-powered trading engine generates random weekly returns of 5%–15%. Sit back and earn.</Body1><div className={styles.heroActions}><Button className={styles.whiteButton} icon={<DataTrending24Regular />}>View My Plans</Button><Button appearance="outline" className={styles.outlineButton} icon={<WalletCreditCard24Regular />}>Deposit Now</Button></div></div></section>
-  <div className={styles.metrics}>{[['Total Balance','$1,567.32','+$134.50 this week',Money24Regular],['Active Plans','2 Plans','Auto Trading ON',DataTrending24Regular],['Last Week’s Profit','$134.50','Avg 9.4% return',Sparkle24Regular],['Referral Income','$18.60','3 active referrals',PeopleTeam24Regular]].map(([title,value,sub,MetricIcon], i) => <div className={styles.metric} key={title as string}><div className={styles.metricTop}><Caption1 className={styles.muted}>{title as string}</Caption1><div className={styles.metricIcon}><MetricIcon /></div></div><div className={styles.metricValue}>{value as string}</div><Caption1 className={i === 1 ? styles.planAccent : styles.green}>{sub as string}</Caption1></div>)}</div>
+  <div className={styles.metrics}>{[['Total Balance',money(userData.totalBalance),`${money(userData.totalEarned)} earned`,Money24Regular],['Active Plans',`${userData.activePlans.length} Plans`,'Auto Trading ON',DataTrending24Regular],['Last Week’s Profit',money(userData.totalEarned),'Current earnings',Sparkle24Regular],['Referral Income',money(userData.referralIncome),`${userData.referralCount} active referrals`,PeopleTeam24Regular]].map(([title,value,sub,MetricIcon], i) => <div className={styles.metric} key={title as string}><div className={styles.metricTop}><Caption1 className={styles.muted}>{title as string}</Caption1><div className={styles.metricIcon}><MetricIcon /></div></div><div className={styles.metricValue}>{value as string}</div><Caption1 className={i === 1 ? styles.planAccent : styles.green}>{sub as string}</Caption1></div>)}</div>
   <section className={styles.engine}><div><div className={styles.liveLabel}><span className={styles.pulse} /> AUTO TRADING ENGINE — SAGECAPITAL</div><Subtitle2>Live market allocation</Subtitle2><Caption1 className={styles.muted}>Your plans are actively managed</Caption1></div><div className={styles.chart}>{[28,35,31,44,39,53,57,65,61,76,72,88].map((height, i) => <span key={i} className={styles.bar} style={{ height: `${height}%` }} />)}</div><div className={styles.countdown}><Caption1>Next Payout</Caption1><Title3>3d 14h 22m</Title3><Caption1>Projected: $80.00 – $240.00</Caption1></div></section>
   <section className={styles.tableCard}><div className={styles.sectionTitle}><Title3>Active Plans</Title3><Button appearance="subtle">View all <ArrowUpRight24Regular /></Button></div><table className={styles.table}><thead><tr>{['Plan Name','Invested','Return Range','Last Week','Earned Last Week','Status'].map(h => <th className={styles.th} key={h}>{h}</th>)}</tr></thead><tbody>{[['Silver','$100','8% – 13%','9.4%','$9.40'],['Gold','$200','10% – 14%','11.2%','$22.40']].map(row => <tr key={row[0]}>{row.map((cell, i) => <td className={styles.td} key={cell}>{i === 5 ? <Badge appearance="tint" color="success">● Auto Trading</Badge> : i === 4 ? <strong className={styles.green}>{cell}</strong> : cell}</td>)}</tr>)}</tbody></table></section>
   <section className={styles.tableCard}><div className={styles.sectionTitle}><Title3>Recent Activity</Title3><Button appearance="subtle">See history</Button></div><table className={styles.table}><tbody>{[['Deposit confirmed','USDT BEP20 · Silver Plan','+$100.00','Today, 09:42'],['Weekly profit credited','Silver Plan · Week 3','+$9.40','Aug 08, 12:18'],['Referral commission','Level 1 · Alex M.','+$2.30','Aug 07, 16:05']].map(row => <tr key={row[0]}><td className={styles.td}><CheckmarkCircle24Regular /> <strong>{row[0]}</strong><br /><Caption1 className={styles.muted}>{row[1]}</Caption1></td><td className={mergeClasses(styles.td, styles.green)}>{row[2]}</td><td className={mergeClasses(styles.td, styles.muted)}>{row[3]}</td><td className={styles.td}><Badge appearance="tint" color="success">Completed</Badge></td></tr>)}</tbody></table></section>

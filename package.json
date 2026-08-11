@@ -10,6 +10,8 @@
   "dependencies": {
     "@fluentui/react-components": "^9.74.1",
     "@fluentui/react-icons": "^2.0.329",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
     "next": "^16.2.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
