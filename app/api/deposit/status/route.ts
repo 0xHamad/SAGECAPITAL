@@ -49,62 +49,70 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: 'expired' })
     }
 
-    // 4. Fetch latest transactions from BscScan
+    // 4. Fetch the exact transaction receipt (Real-time, bypasses BscScan cache)
     if (!BSCSCAN_API_KEY) {
       console.warn('BSCSCAN_API_KEY is not set')
-      return NextResponse.json({ status: deposit.status }) // silently fail check if no key
+      return NextResponse.json({ status: deposit.status }) 
     }
 
-    const url = `https://api.bscscan.com/api?module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${deposit.pay_address}&page=1&offset=50&sort=desc&apikey=${BSCSCAN_API_KEY}`
+    const submittedTxHash = deposit.np_payment_id?.toLowerCase()
+    if (!submittedTxHash) {
+      return NextResponse.json({ status: deposit.status })
+    }
+
+    const url = `https://api.bscscan.com/api?module=proxy&action=eth_getTransactionReceipt&txhash=${submittedTxHash}&apikey=${BSCSCAN_API_KEY}`
     
     const res = await fetch(url)
     const data = await res.json()
 
-    if (data.status === '1' && data.result) {
-      const transactions = data.result
-      
-      const submittedTxHash = deposit.np_payment_id?.toLowerCase()
-      if (!submittedTxHash) {
-        return NextResponse.json({ status: deposit.status })
-      }
+    if (data.result && data.result.logs) {
+      const logs = data.result.logs
 
-      for (const tx of transactions) {
-        if (
-          tx.hash.toLowerCase() === submittedTxHash &&
-          tx.to.toLowerCase() === deposit.pay_address.toLowerCase()
-        ) {
-          const amount = parseFloat(tx.value) / 1e18 // Convert from Wei
-          
-          // WE HAVE A MATCH! Confirm the deposit!
-          
-          // A. Update deposit status and real amount
-          await adminClient
-            .from('deposits')
-            .update({ 
-              status: 'finished', 
-              amount_usd: amount,
-              amount_crypto: amount 
-            })
-            .eq('id', deposit.id)
+      for (const log of logs) {
+        // Check if log is from USDT contract
+        if (log.address.toLowerCase() === USDT_CONTRACT.toLowerCase()) {
+          // Topics[0] is the Transfer event signature
+          // Topics[1] is From
+          // Topics[2] is To (padded to 32 bytes)
+          if (log.topics && log.topics.length >= 3) {
+            const toAddressHex = log.topics[2]
+            const toAddress = '0x' + toAddressHex.slice(-40) // Extract last 40 chars (20 bytes)
 
-          // B. Update user balance
-          const { data: userData } = await adminClient
-            .from('users')
-            .select('total_balance, total_deposited')
-            .eq('id', session.user.id)
-            .single()
+            if (toAddress.toLowerCase() === deposit.pay_address.toLowerCase()) {
+              // Found the transfer to our master wallet!
+              const amountHex = log.data
+              const amount = parseInt(amountHex, 16) / 1e18 // Convert from Wei
+              
+              // A. Update deposit status and real amount
+              await adminClient
+                .from('deposits')
+                .update({ 
+                  status: 'finished', 
+                  amount_usd: amount,
+                  amount_crypto: amount 
+                })
+                .eq('id', deposit.id)
 
-          if (userData) {
-            await adminClient
-              .from('users')
-              .update({
-                total_balance: (userData.total_balance || 0) + amount,
-                total_deposited: (userData.total_deposited || 0) + amount
-              })
-              .eq('id', session.user.id)
+              // B. Update user balance
+              const { data: userData } = await adminClient
+                .from('users')
+                .select('total_balance, total_deposited')
+                .eq('id', session.user.id)
+                .single()
+
+              if (userData) {
+                await adminClient
+                  .from('users')
+                  .update({
+                    total_balance: (userData.total_balance || 0) + amount,
+                    total_deposited: (userData.total_deposited || 0) + amount
+                  })
+                  .eq('id', session.user.id)
+              }
+
+              return NextResponse.json({ status: 'finished' })
+            }
           }
-
-          return NextResponse.json({ status: 'finished' })
         }
       }
     }
