@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'This transaction hash has already been used or claimed' }, { status: 400 })
     }
 
-    const masterWallet = process.env.MASTER_WALLET_ADDRESS
+    const masterWallet = process.env.MASTER_WALLET_ADDRESS || "0x951f08258E53F69a368EFB9D923dC6d19416e50c"
     if (!masterWallet) {
       console.error('MASTER_WALLET_ADDRESS not configured')
       return NextResponse.json({ error: 'System configuration error' }, { status: 500 })
