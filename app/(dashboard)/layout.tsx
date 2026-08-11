@@ -3,9 +3,10 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { StarterPage } from '@/components/starter-page'
+import { DashboardLayout } from '@/components/dashboard-ui'
+import { DashboardProvider } from '@/components/dashboard-context'
 
-export default function DashboardPage() {
+export default function DashboardPageLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const supabase = createClient()
   const [user, setUser] = React.useState<{ email: string; name: string } | null>(null)
@@ -179,11 +180,10 @@ export default function DashboardPage() {
   if (!user) return null
 
   return (
-    <StarterPage
-      userName={user.name}
-      userEmail={user.email}
-      userData={userData}
-      onSignOut={handleSignOut}
-    />
+    <DashboardProvider value={{ userData, user }}>
+      <DashboardLayout onSignOut={handleSignOut}>
+        {children}
+      </DashboardLayout>
+    </DashboardProvider>
   )
 }
