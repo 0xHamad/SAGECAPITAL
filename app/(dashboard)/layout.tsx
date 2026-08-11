@@ -85,13 +85,13 @@ export default function DashboardPageLayout({ children }: { children: React.Reac
           let activeDeposit = null
           if (latestDeposit) {
             const ageMs = Date.now() - new Date(latestDeposit.created_at).getTime()
-            if (ageMs < 30 * 60 * 1000) { // 30 minutes
+            if (ageMs < 15 * 60 * 1000) { // 15 minutes
               activeDeposit = {
                 pay_address: latestDeposit.pay_address,
                 pay_amount: latestDeposit.amount_crypto,
                 pay_currency: latestDeposit.coin,
                 created_at: latestDeposit.created_at,
-                expires_at: new Date(new Date(latestDeposit.created_at).getTime() + 30 * 60 * 1000).toISOString()
+                expires_at: new Date(new Date(latestDeposit.created_at).getTime() + 15 * 60 * 1000).toISOString()
               }
             }
           }

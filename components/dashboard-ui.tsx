@@ -246,6 +246,10 @@ export function Wallet({ styles, copied, copyLink }: { styles: ReturnType<typeof
           setError('Transaction was rejected.')
           setDepositData(null)
           clearInterval(poll)
+        } else if (data.status === 'expired') {
+          setError('Deposit time expired. Please submit a new transaction.')
+          setDepositData(null)
+          clearInterval(poll)
         }
       } catch (e) {}
     }, 5000) // Poll every 5 seconds
