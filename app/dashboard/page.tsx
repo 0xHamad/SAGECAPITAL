@@ -20,6 +20,7 @@ export default function DashboardPage() {
     recentActivity: [] as Array<{ description: string; sub: string; amount: string; date: string; status: string }>,
     referralCount: 0,
     referralCode: '',
+    activeDeposit: null as any,
   })
 
   React.useEffect(() => {
@@ -70,6 +71,30 @@ export default function DashboardPage() {
             .order('created_at', { ascending: false })
             .limit(5)
 
+          // Load active pending deposit (less than 30 mins old)
+          const { data: latestDeposit } = await supabase
+            .from('deposits')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .eq('status', 'waiting')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+
+          let activeDeposit = null
+          if (latestDeposit) {
+            const ageMs = Date.now() - new Date(latestDeposit.created_at).getTime()
+            if (ageMs < 30 * 60 * 1000) { // 30 minutes
+              activeDeposit = {
+                pay_address: latestDeposit.pay_address,
+                pay_amount: latestDeposit.amount_crypto,
+                pay_currency: latestDeposit.coin,
+                created_at: latestDeposit.created_at,
+                expires_at: new Date(new Date(latestDeposit.created_at).getTime() + 30 * 60 * 1000).toISOString()
+              }
+            }
+          }
+
           // Load referral count
           const { count: refCount } = await supabase
             .from('profiles')
@@ -114,6 +139,7 @@ export default function DashboardPage() {
             recentActivity: activity.sort(() => Math.random() - 0.5).slice(0, 5),
             referralCount: refCount || 0,
             referralCode: profile.referral_code || '',
+            activeDeposit: activeDeposit,
           })
         }
       } catch {

@@ -70,12 +70,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
+    const expires_at = new Date(Date.now() + 30 * 60000).toISOString()
+
     return NextResponse.json({
       payment_id: npData.payment_id,
       pay_address: npData.pay_address,
       pay_amount: npData.pay_amount,
       pay_currency: npData.pay_currency,
-      order_id: order_id
+      order_id: order_id,
+      expires_at: expires_at
     })
 
   } catch (error: any) {
