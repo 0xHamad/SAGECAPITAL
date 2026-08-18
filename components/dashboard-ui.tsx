@@ -158,6 +158,7 @@ export function DashboardLayout({ children, onSignOut }: { children: React.React
       <header className={styles.topbar}>
         <div className={styles.crumb}>SageCapital <span aria-hidden>›</span> <strong>{navItems.find(i => i[2] === pathname)?.[0] || 'Dashboard'}</strong></div>
         <div className={styles.user}>
+          <Badge appearance="tint" color="brand" size="small">v1.1</Badge>
           <CounterBadge count={3} color="danger" size="small"><Alert24Regular /></CounterBadge>
           <Avatar name={userName} color="brand" size={32} />
           <Body2>{userName}</Body2>
