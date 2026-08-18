@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -19,6 +19,7 @@ export async function GET() {
 
     return NextResponse.json({ referralCount: count || 0 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    console.error('Stats API error:', err)
+    return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 })
   }
 }
