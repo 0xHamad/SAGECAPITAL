@@ -96,11 +96,15 @@ export default function DashboardPageLayout({ children }: { children: React.Reac
             }
           }
 
-          // Load referral count
-          const { count: refCount } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('referred_by', authUser.id)
+          // Load referral count via API to bypass RLS
+          let refCount = 0
+          try {
+            const statsRes = await fetch('/api/user/stats')
+            if (statsRes.ok) {
+              const statsData = await statsRes.json()
+              refCount = statsData.referralCount || 0
+            }
+          } catch (e) {}
 
           const activePlansMapped = (plans || []).map(p => ({
             name: p.plan_name,
