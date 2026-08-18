@@ -18,12 +18,20 @@ export async function GET() {
     const totalDeposited = (deposits.data || []).reduce((sum, d) => sum + (d.amount_usd || 0), 0)
     const totalEarnings = (earnings.data || []).reduce((sum, e) => sum + (e.amount || 0), 0)
 
+    const allUsers = users.data || []
+    
+    // Calculate referral count for each user
+    const usersWithStats = allUsers.map(u => {
+      const refCount = allUsers.filter(other => other.referred_by === u.id).length
+      return { ...u, referralCount: refCount }
+    })
+
     return NextResponse.json({
-      totalUsers: users.data?.length || 0,
+      totalUsers: allUsers.length,
       totalDeposited,
       totalPlans: plans.data?.length || 0,
       totalEarnings,
-      users: users.data || [],
+      users: usersWithStats,
       withdrawals: withdrawals.data || [],
     })
   } catch (err: any) {

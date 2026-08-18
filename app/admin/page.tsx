@@ -156,7 +156,7 @@ export default function AdminPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={s.table}>
               <thead>
-                <tr>{['Name', 'Email', 'Balance', 'Deposited', 'Ref Code', 'Joined'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                <tr>{['Name', 'Email', 'Balance', 'Deposited', 'Ref Code', 'Referrals', 'Ref Earnings', 'Joined'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {filteredUsers.map((u: any) => (
@@ -166,10 +166,12 @@ export default function AdminPage() {
                     <td style={{ ...s.td, color: '#059669', fontWeight: 700 }}>${(u.total_balance || 0).toFixed(2)}</td>
                     <td style={s.td}>${(u.total_deposited || 0).toFixed(2)}</td>
                     <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12 }}>{u.referral_code}</td>
+                    <td style={{ ...s.td, fontWeight: 600, color: '#6d28d9' }}>{u.referralCount || 0}</td>
+                    <td style={{ ...s.td, color: '#059669' }}>${(u.referral_income || 0).toFixed(2)}</td>
                     <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
-                {filteredUsers.length === 0 && <tr><td colSpan={6} style={{ ...s.td, textAlign: 'center', color: '#9ca3af' }}>No users found</td></tr>}
+                {filteredUsers.length === 0 && <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: '#9ca3af' }}>No users found</td></tr>}
               </tbody>
             </table>
           </div>

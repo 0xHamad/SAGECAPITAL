@@ -70,7 +70,53 @@ export async function GET(req: Request) {
         }).eq('id', plan.user_id)
       }
 
-      // Referral commissions are now paid on plan purchase, not on weekly profits.
+      // 3. Process Referral Commissions (Up to 3 levels)
+      let currentUserId = userProfile?.referred_by
+      const levels = [
+        { level: 1, pct: 0.1 / 100 },
+        { level: 2, pct: 0.01 / 100 },
+        { level: 3, pct: 0.001 / 100 }
+      ]
+
+      for (const { level, pct } of levels) {
+        if (!currentUserId) break // No referrer at this level
+
+        const commission = (Number(profitEarned) * pct).toFixed(4)
+        if (Number(commission) > 0) {
+          // Record commission
+          await supabase.from('referral_commissions').insert({
+            earner_id: currentUserId,
+            source_id: plan.user_id,
+            plan_id: plan.id,
+            level: level,
+            percentage: pct * 100, // stored as visual percentage, e.g. 0.1
+            amount: Number(commission)
+          })
+
+          // Update earner's profile
+          const { data: earnerProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUserId)
+            .single()
+
+          if (earnerProfile) {
+            await supabase.from('profiles').update({
+              referral_income: Number(earnerProfile.referral_income) + Number(commission),
+              total_balance: Number(earnerProfile.total_balance) + Number(commission),
+              withdrawable: Number(earnerProfile.withdrawable) + Number(commission)
+            }).eq('id', currentUserId)
+            
+            // Move up to the next level
+            currentUserId = earnerProfile.referred_by
+          } else {
+            break
+          }
+        } else {
+          // If commission is 0 due to rounding on tiny plans, break or continue
+          break
+        }
+      }
 
       processed.push({ plan_id: plan.id, profit: profitEarned })
     }
