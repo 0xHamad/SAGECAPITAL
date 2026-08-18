@@ -61,9 +61,9 @@ export async function GET(req: Request) {
     }
 
     const RPC_URLS = [
+      'https://bsc-rpc.publicnode.com',
       'https://bsc-dataseed.binance.org/',
-      'https://bsc-dataseed1.defibit.io/',
-      'https://bsc-dataseed1.ninicoin.io/'
+      'https://1rpc.io/bnb'
     ]
 
     const rpcPayload = {
@@ -75,6 +75,7 @@ export async function GET(req: Request) {
 
     let data: any = null;
     let workingRpc = RPC_URLS[0];
+    let rpcSuccess = false;
 
     for (const rpc of RPC_URLS) {
       try {
@@ -90,6 +91,7 @@ export async function GET(req: Request) {
         clearTimeout(timeoutId)
         
         const json = await res.json()
+        rpcSuccess = true;
         if (json && json.result) {
           data = json
           workingRpc = rpc
@@ -98,6 +100,10 @@ export async function GET(req: Request) {
       } catch (e) {
         console.warn(`RPC ${rpc} failed or timed out, trying next...`)
       }
+    }
+
+    if (!rpcSuccess) {
+       return NextResponse.json({ error: 'Network congestion: Unable to reach blockchain nodes. Please try again later.' }, { status: 503 })
     }
 
     if (data && data.result && data.result.logs) {
