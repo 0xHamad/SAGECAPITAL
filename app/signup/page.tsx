@@ -2,24 +2,74 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Input, Label, makeStyles, MessageBar, MessageBarBody } from '@fluentui/react-components'
 import { ShieldCheckmark24Regular, Mail24Regular, LockClosed24Regular, Eye24Regular, Person24Regular, ArrowRight24Regular } from '@fluentui/react-icons'
 import { createClient } from '@/lib/supabase/client'
 
 const useStyles = makeStyles({ page: { minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px 20px', backgroundColor: '#f7f8fc' }, card: { width: '100%', maxWidth: '460px', padding: '34px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid #e8ebf2', boxShadow: '0 20px 55px rgba(36,47,75,.12)', display: 'flex', flexDirection: 'column', gap: '16px' }, logo: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', fontSize: '22px', fontWeight: 800, color: '#7041d5' }, title: { textAlign: 'center', fontSize: '29px', fontWeight: 800, color: '#182033' }, sub: { textAlign: 'center', color: '#70798b' }, field: { display: 'flex', flexDirection: 'column', gap: '7px' }, input: { width: '100%' }, footer: { textAlign: 'center', color: '#70798b', fontSize: '13px' }, link: { color: '#7041d5', fontWeight: 700 } })
 
-export default function SignupPage() {
-  const styles = useStyles(); const router = useRouter(); const [form, setForm] = React.useState({ name: '', email: '', password: '', referral: '' }); const [loading, setLoading] = React.useState(false); const [error, setError] = React.useState(''); const [show, setShow] = React.useState(false)
+function SignupForm() {
+  const styles = useStyles()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [form, setForm] = React.useState({ name: '', email: '', password: '', referral: searchParams.get('ref') || '' })
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState('')
+  const [show, setShow] = React.useState(false)
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      const ref = params.get('ref')
-      if (ref) setForm(f => ({ ...f, referral: ref }))
-    }
-  }, [])
+    const ref = searchParams.get('ref')
+    if (ref) setForm(f => ({ ...f, referral: ref }))
+  }, [searchParams])
 
-  const handleSignup = async (e: React.FormEvent) => { e.preventDefault(); setLoading(true); const supabase = createClient(); const { error: authError } = await supabase.auth.signUp({ email: form.email, password: form.password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`, data: { full_name: form.name.trim(), referral_code: form.referral.trim() || null } } }); if (authError) { setError(authError.message.includes('already') ? 'Unable to create account with these details.' : authError.message.includes('confirm') ? 'Please check your email to confirm your account.' : 'Unable to create your account. Please try again.'); setLoading(false) } else { router.push('/login?created=1') } }
-  return <main className={styles.page}><form className={styles.card} onSubmit={handleSignup}><div className={styles.logo}><ShieldCheckmark24Regular />SageCapital</div><div><h1 className={styles.title}>Create Your Account</h1><p className={styles.sub}>Join SageCapital investors earning weekly crypto returns</p></div><div className={styles.field}><Label htmlFor="name" style={{ color: '#364152' }}>Full Name</Label><Input id="name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={styles.input} contentBefore={<Person24Regular />} /></div><div className={styles.field}><Label htmlFor="email" style={{ color: '#364152' }}>Email Address</Label><Input id="email" type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={styles.input} contentBefore={<Mail24Regular />} /></div><div className={styles.field}><Label htmlFor="password" style={{ color: '#364152' }}>Password</Label><Input id="password" type={show ? 'text' : 'password'} required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={styles.input} contentBefore={<LockClosed24Regular />} contentAfter={<button type="button" aria-label="Toggle password visibility" onClick={() => setShow(!show)}><Eye24Regular /></button>} /></div><div className={styles.field}><Label htmlFor="referral" style={{ color: '#364152' }}>Referral Code (optional)</Label><Input id="referral" value={form.referral} onChange={e => setForm({ ...form, referral: e.target.value })} className={styles.input} /></div>{error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}<Button type="submit" appearance="primary" size="large" icon={<ArrowRight24Regular />} disabled={loading}>{loading ? 'Creating account...' : 'Create Account'}</Button><div className={styles.footer}>Already have an account? <Link href="/login" className={styles.link}>Sign In</Link></div></form></main>
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+        data: {
+          full_name: form.name.trim(),
+          referral_code: form.referral ? form.referral.trim().toUpperCase() : null
+        }
+      }
+    })
+    
+    if (authError) {
+      setError(authError.message.includes('already') ? 'Unable to create account with these details.' : authError.message.includes('confirm') ? 'Please check your email to confirm your account.' : 'Unable to create your account. Please try again.')
+      setLoading(false)
+    } else {
+      router.push('/login?created=1')
+    }
+  }
+
+  return (
+    <form className={styles.card} onSubmit={handleSignup}>
+      <div className={styles.logo}><ShieldCheckmark24Regular />SageCapital</div>
+      <div><h1 className={styles.title}>Create Your Account</h1><p className={styles.sub}>Join SageCapital investors earning weekly crypto returns</p></div>
+      <div className={styles.field}><Label htmlFor="name" style={{ color: '#364152' }}>Full Name</Label><Input id="name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={styles.input} contentBefore={<Person24Regular />} /></div>
+      <div className={styles.field}><Label htmlFor="email" style={{ color: '#364152' }}>Email Address</Label><Input id="email" type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={styles.input} contentBefore={<Mail24Regular />} /></div>
+      <div className={styles.field}><Label htmlFor="password" style={{ color: '#364152' }}>Password</Label><Input id="password" type={show ? 'text' : 'password'} required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={styles.input} contentBefore={<LockClosed24Regular />} contentAfter={<button type="button" aria-label="Toggle password visibility" onClick={() => setShow(!show)}><Eye24Regular /></button>} /></div>
+      <div className={styles.field}><Label htmlFor="referral" style={{ color: '#364152' }}>Referral Code (optional)</Label><Input id="referral" value={form.referral} onChange={e => setForm({ ...form, referral: e.target.value })} className={styles.input} /></div>
+      {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
+      <Button type="submit" appearance="primary" size="large" icon={<ArrowRight24Regular />} disabled={loading}>{loading ? 'Creating account...' : 'Create Account'}</Button>
+      <div className={styles.footer}>Already have an account? <Link href="/login" className={styles.link}>Sign In</Link></div>
+    </form>
+  )
+}
+
+export default function SignupPage() {
+  const styles = useStyles()
+  return (
+    <main className={styles.page}>
+      <React.Suspense fallback={<div className={styles.card}>Loading...</div>}>
+        <SignupForm />
+      </React.Suspense>
+    </main>
+  )
 }
