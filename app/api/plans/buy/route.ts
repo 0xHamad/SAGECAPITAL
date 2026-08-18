@@ -1,122 +1,95 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 
 const PLAN_PRICES: Record<string, number> = {
-  'Basic': 10,
-  'Starter': 50,
-  'Standard': 100,
-  'Advanced': 200,
-  'Pro': 500,
-  'Business': 1000,
-  'Enterprise': 5000
+  'Basic': 10, 'Starter': 50, 'Standard': 100,
+  'Advanced': 200, 'Pro': 500, 'Business': 1000, 'Enterprise': 5000
 }
+const REFERRAL_RATES = [0.10, 0.05, 0.01]
 
-const REFERRAL_RATES = [0.10, 0.05, 0.01] // Level 1: 10%, Level 2: 5%, Level 3: 1%
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get('cookie')
-    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    // Initialize regular client for auth
-    const { createServerClient } = require('@supabase/ssr')
-    const { cookies } = require('next/headers')
-    const cookieStore = cookies()
-    const supabase = createServerClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value }
-      }
-    })
-
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
     const { planName } = body
 
-    if (!PLAN_PRICES[planName]) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
-    }
-
     const price = PLAN_PRICES[planName]
+    if (!price) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
-    // Get user balance
-    const { data: userProfile, error: profileErr } = await adminClient
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
+    const adminClient = createAdminClient()
 
-    if (profileErr || !userProfile) {
+    const { data: profile, error: profileErr } = await adminClient
+      .from('profiles').select('*').eq('id', session.user.id).single()
+
+    if (profileErr || !profile) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    if (userProfile.total_balance < price) {
-      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 })
+    if ((profile.total_balance || 0) < price) {
+      return NextResponse.json({ error: `Insufficient balance. You need $${price} but have $${(profile.total_balance || 0).toFixed(2)}` }, { status: 400 })
     }
 
-    // Deduct balance and create plan
-    const newBalance = userProfile.total_balance - price
-    await adminClient.from('profiles').update({ total_balance: newBalance }).eq('id', session.user.id)
+    // Deduct balance
+    const { error: deductErr } = await adminClient.from('profiles')
+      .update({ total_balance: profile.total_balance - price })
+      .eq('id', session.user.id)
 
+    if (deductErr) return NextResponse.json({ error: 'Failed to deduct balance' }, { status: 500 })
+
+    // Create plan
     const nextPayout = new Date()
-    nextPayout.setDate(nextPayout.getDate() + 7) // 7 days from now
+    nextPayout.setDate(nextPayout.getDate() + 7)
 
     const { data: newPlan, error: planErr } = await adminClient.from('user_plans').insert({
       user_id: session.user.id,
       plan_name: planName,
       amount: price,
-      next_payout: nextPayout.toISOString()
+      weekly_min: 5,
+      weekly_max: 15,
+      next_payout: nextPayout.toISOString(),
+      status: 'active'
     }).select().single()
 
     if (planErr || !newPlan) {
-      // Refund if plan creation failed
-      await adminClient.from('profiles').update({ total_balance: userProfile.total_balance }).eq('id', session.user.id)
-      return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 })
+      // Refund on failure
+      await adminClient.from('profiles').update({ total_balance: profile.total_balance }).eq('id', session.user.id)
+      return NextResponse.json({ error: 'Failed to activate plan' }, { status: 500 })
     }
 
-    // Process Referral Commissions (3 Levels)
-    let currentReferrerId = userProfile.referred_by
-    for (let level = 0; level < 3; level++) {
-      if (!currentReferrerId) break
-
-      const { data: referrerData } = await adminClient
-        .from('profiles')
-        .select('id, referred_by, total_balance, referral_income')
-        .eq('id', currentReferrerId)
-        .single()
-
-      if (!referrerData) break
+    // Pay referral commissions (3 levels, on plan price)
+    let referrerId = profile.referred_by
+    for (let level = 0; level < 3 && referrerId; level++) {
+      const { data: referrer } = await adminClient
+        .from('profiles').select('id, referred_by, total_balance, referral_income').eq('id', referrerId).single()
+      if (!referrer) break
 
       const commission = price * REFERRAL_RATES[level]
-      
-      // Update referrer's balance
       await adminClient.from('profiles').update({
-        total_balance: (referrerData.total_balance || 0) + commission,
-        referral_income: (referrerData.referral_income || 0) + commission
-      }).eq('id', referrerData.id)
+        total_balance: (referrer.total_balance || 0) + commission,
+        referral_income: (referrer.referral_income || 0) + commission,
+      }).eq('id', referrer.id)
 
-      // Log commission
       await adminClient.from('referral_commissions').insert({
-        earner_id: referrerData.id,
+        earner_id: referrer.id,
         source_id: session.user.id,
         plan_id: newPlan.id,
         level: level + 1,
         percentage: REFERRAL_RATES[level],
-        amount: commission
+        amount: commission,
       })
 
-      currentReferrerId = referrerData.referred_by
+      referrerId = referrer.referred_by
     }
 
-    return NextResponse.json({ success: true, newBalance })
-
-  } catch (error: any) {
-    console.error('Plan Buy Error:', error)
+    return NextResponse.json({ success: true, planName, price, newBalance: profile.total_balance - price })
+  } catch (err: any) {
+    console.error('Plan buy error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
