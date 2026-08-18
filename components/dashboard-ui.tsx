@@ -268,13 +268,13 @@ export function Dashboard({ styles }: { styles: ReturnType<typeof useStyles> }) 
 
 // ─── Plans with 3D Success Modal ──────────────────────────────────────────────
 const PLANS = [
-  { name: 'Basic', price: 10, referralRate: '1%', tier: 'Tier 1', color: '#7041d5' },
-  { name: 'Starter', price: 50, referralRate: '5%', tier: 'Tier 2', color: '#7041d5' },
-  { name: 'Standard', price: 100, referralRate: '10%', tier: 'Tier 3', color: '#2563eb' },
-  { name: 'Advanced', price: 200, referralRate: '20%', tier: 'Tier 4', color: '#059669' },
-  { name: 'Pro', price: 500, referralRate: '50%', tier: '★ Most Popular', color: '#d97706' },
-  { name: 'Business', price: 1000, referralRate: '100%', tier: '🔥 Best Value', color: '#dc2626' },
-  { name: 'Enterprise', price: 5000, referralRate: '500%', tier: '🏆 Elite', color: '#7c3aed' },
+  { name: 'Basic', price: 10, referralRate: '0.1%', tier: 'Tier 1', color: '#7041d5' },
+  { name: 'Starter', price: 50, referralRate: '0.5%', tier: 'Tier 2', color: '#7041d5' },
+  { name: 'Standard', price: 100, referralRate: '1.0%', tier: 'Tier 3', color: '#2563eb' },
+  { name: 'Advanced', price: 200, referralRate: '2.0%', tier: 'Tier 4', color: '#059669' },
+  { name: 'Pro', price: 500, referralRate: '5.0%', tier: '★ Most Popular', color: '#d97706' },
+  { name: 'Business', price: 1000, referralRate: '10.0%', tier: '🔥 Best Value', color: '#dc2626' },
+  { name: 'Enterprise', price: 5000, referralRate: '50.0%', tier: '🏆 Elite', color: '#7c3aed' },
 ]
 
 export function Plans({ styles }: { styles: ReturnType<typeof useStyles> }) {
@@ -340,7 +340,7 @@ export function Plans({ styles }: { styles: ReturnType<typeof useStyles> }) {
     </section>
 
     <div className={styles.info}>
-      <strong>💡 How it works:</strong> Deposit USDT → Buy a plan → Earn 5%–15% weekly, automatically. Referral commissions are paid instantly when someone you referred buys a plan: <strong>Level 1: 10%</strong>, Level 2: 5%, Level 3: 1% of the plan price.
+      <strong>💡 How it works:</strong> Deposit USDT → Buy a plan → Earn 5%–15% weekly, automatically. Referral commissions are paid weekly when your referrals earn profit. Rates scale with their plan size.
     </div>
 
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
@@ -363,7 +363,7 @@ export function Plans({ styles }: { styles: ReturnType<typeof useStyles> }) {
             <Title2>${plan.price}</Title2>
             <div className={styles.planAccent} style={{ color: plan.color }}>5% – 15% weekly</div>
             <Body2 style={{ color: '#6b7280', fontSize: 12 }}>
-              Ref commission: <strong>{plan.referralRate}</strong> of plan price on purchase
+              L1 commission: <strong>{plan.referralRate}</strong> of their weekly profit
             </Body2>
             <Button
               appearance="primary"
@@ -624,16 +624,16 @@ export function Referrals({ styles, copied, copyLink }: { styles: ReturnType<typ
         <div className={styles.heroContent}>
           <Badge appearance="tint" color="success">💰 Multi-Level Referral Program</Badge>
           <div className={styles.heroTitle}>Invite Friends & Earn Commissions</div>
-          <Body1 className={styles.heroText}>Earn instant commissions when people you invite buy investment plans.</Body1>
+          <Body1 className={styles.heroText}>Earn weekly commissions when people you invite earn their weekly profits.</Body1>
         </div>
       </section>
 
       {/* Commission Levels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
         {[
-          { level: 'Level 1 (Direct)', rate: '10%', desc: 'Of plan price when your direct referral buys any plan', color: '#6d28d9', icon: '🥇' },
-          { level: 'Level 2', rate: '5%', desc: 'When your referral\'s referral buys a plan', color: '#2563eb', icon: '🥈' },
-          { level: 'Level 3', rate: '1%', desc: 'Three levels deep in your network', color: '#059669', icon: '🥉' },
+          { level: 'Level 1 (Direct)', rate: '0.1% – 5.0%', desc: 'Of weekly profit, scaling by plan size ($10=$0.001, $100=$0.10)', color: '#6d28d9', icon: '🥇' },
+          { level: 'Level 2', rate: '0.01% – 0.5%', desc: 'When your referral\'s referral earns weekly profit', color: '#2563eb', icon: '🥈' },
+          { level: 'Level 3', rate: '0.001% – 0.05%', desc: 'Three levels deep in your network', color: '#059669', icon: '🥉' },
         ].map(c => (
           <div key={c.level} style={{ padding: 20, background: '#fff', border: `2px solid ${c.color}20`, borderRadius: 14, borderLeft: `4px solid ${c.color}` }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>{c.icon}</div>

@@ -72,10 +72,16 @@ export async function GET(req: Request) {
 
       // 3. Process Referral Commissions (Up to 3 levels)
       let currentUserId = userProfile?.referred_by
+      const planAmount = Number(plan.amount)
+
+      // Rates are dynamic based on the plan amount:
+      // Level 1: (Plan Amount / 100) % -> e.g. $10 = 0.1%, $100 = 1.0%
+      // Level 2: (Plan Amount / 1000) % -> e.g. $10 = 0.01%, $100 = 0.1%
+      // Level 3: (Plan Amount / 10000) % -> e.g. $10 = 0.001%, $100 = 0.01%
       const levels = [
-        { level: 1, pct: 10 / 100 },   // 10% of weekly profit
-        { level: 2, pct: 1 / 100 },    // 1% of weekly profit
-        { level: 3, pct: 0.1 / 100 }   // 0.1% of weekly profit
+        { level: 1, pct: (planAmount / 100) / 100 },
+        { level: 2, pct: (planAmount / 1000) / 100 },
+        { level: 3, pct: (planAmount / 10000) / 100 }
       ]
 
       for (const { level, pct } of levels) {
