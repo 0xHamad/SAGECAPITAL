@@ -60,7 +60,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: deposit.status })
     }
 
-    const RPC_URL = 'https://bsc-dataseed.binance.org/'
+    const RPC_URLS = [
+      'https://bsc-dataseed.binance.org/',
+      'https://bsc-dataseed1.defibit.io/',
+      'https://bsc-dataseed1.ninicoin.io/'
+    ]
 
     const rpcPayload = {
       jsonrpc: '2.0',
@@ -69,14 +73,28 @@ export async function GET(req: Request) {
       params: [submittedTxHash]
     }
 
-    const res = await fetch(RPC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(rpcPayload)
-    })
-    const data = await res.json()
+    let data: any = null;
+    let workingRpc = RPC_URLS[0];
 
-    if (data.result && data.result.logs) {
+    for (const rpc of RPC_URLS) {
+      try {
+        const res = await fetch(rpc, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rpcPayload)
+        })
+        const json = await res.json()
+        if (json && json.result) {
+          data = json
+          workingRpc = rpc
+          break
+        }
+      } catch (e) {
+        console.warn(`RPC ${rpc} failed, trying next...`)
+      }
+    }
+
+    if (data && data.result && data.result.logs) {
       const logs = data.result.logs
 
       for (const log of logs) {
@@ -103,7 +121,7 @@ export async function GET(req: Request) {
                 }
                 
                 try {
-                  const blockRes = await fetch(RPC_URL, {
+                  const blockRes = await fetch(workingRpc, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(blockPayload)

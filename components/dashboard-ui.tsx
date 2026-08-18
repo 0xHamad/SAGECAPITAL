@@ -288,7 +288,7 @@ export function Wallet({ styles, copied, copyLink }: { styles: ReturnType<typeof
           clearInterval(poll)
         }
       } catch (e) {}
-    }, 5000) // Poll every 5 seconds
+    }, 3000) // Poll every 3 seconds
     return () => clearInterval(poll)
   }, [depositData, timeLeft])
 
