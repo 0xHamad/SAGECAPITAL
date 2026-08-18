@@ -13,10 +13,10 @@ export default function AdminPage() {
   const [stats, setStats] = React.useState<any>(null)
   const [tab, setTab] = React.useState('overview')
   const [search, setSearch] = React.useState('')
-  const [creditUserId, setCreditUserId] = React.useState('')
+  const [creditEmail, setCreditEmail] = React.useState('')
   const [creditAmount, setCreditAmount] = React.useState('')
   const [creditMsg, setCreditMsg] = React.useState('')
-  const [pwdUserId, setPwdUserId] = React.useState('')
+  const [pwdEmail, setPwdEmail] = React.useState('')
   const [newPwd, setNewPwd] = React.useState('')
   const [pwdMsg, setPwdMsg] = React.useState('')
 
@@ -70,22 +70,22 @@ export default function AdminPage() {
     setCreditMsg('')
     const res = await fetch('/api/admin/credit', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: creditUserId, amount: Number(creditAmount) })
+      body: JSON.stringify({ email: creditEmail, amount: Number(creditAmount) })
     })
     const d = await res.json()
     setCreditMsg(res.ok ? '✅ Balance credited!' : `❌ ${d.error}`)
-    if (res.ok) { setCreditUserId(''); setCreditAmount(''); const r = await fetch('/api/admin/stats'); if (r.ok) setStats(await r.json()) }
+    if (res.ok) { setCreditEmail(''); setCreditAmount(''); const r = await fetch('/api/admin/stats'); if (r.ok) setStats(await r.json()) }
   }
 
   const handlePwd = async () => {
     setPwdMsg('')
     const res = await fetch('/api/admin/change-password', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: pwdUserId, newPassword: newPwd })
+      body: JSON.stringify({ email: pwdEmail, newPassword: newPwd })
     })
     const d = await res.json()
     setPwdMsg(res.ok ? '✅ Password changed!' : `❌ ${d.error}`)
-    if (res.ok) { setPwdUserId(''); setNewPwd('') }
+    if (res.ok) { setPwdEmail(''); setNewPwd('') }
   }
 
   const handleWithdrawal = async (id: string, action: 'approve' | 'reject') => {
@@ -180,24 +180,23 @@ export default function AdminPage() {
       {tab === 'credit' && (
         <div style={s.card}>
           <div style={s.cardTitle}>💳 Manual Balance Credit</div>
-          <p style={{ color: '#6b7280', marginBottom: 16 }}>Add balance directly to a user's account. Use the User ID from the Users table.</p>
+          <p style={{ color: '#6b7280', marginBottom: 16 }}>Add balance directly to a user's account using their email address.</p>
           <div style={s.formRow}>
-            <input style={s.input} placeholder="User ID (UUID)" value={creditUserId} onChange={e => setCreditUserId(e.target.value)} />
+            <input style={s.input} placeholder="User Email (e.g. test@gmail.com)" value={creditEmail} onChange={e => setCreditEmail(e.target.value)} />
             <input style={s.input} placeholder="Amount in USD (e.g. 100)" type="number" value={creditAmount} onChange={e => setCreditAmount(e.target.value)} />
             <button style={s.btn} onClick={handleCredit}>Credit Balance</button>
           </div>
           {creditMsg && <div style={{ marginTop: 12, padding: '10px 16px', background: creditMsg.includes('✅') ? '#d1fae5' : '#fee2e2', borderRadius: 8 }}>{creditMsg}</div>}
           <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
-          <div style={s.cardTitle} id="user-ids">User IDs Reference</div>
+          <div style={s.cardTitle} id="user-ids">User Reference</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={s.table}>
-              <thead><tr><th style={s.th}>Name</th><th style={s.th}>Email</th><th style={s.th}>User ID</th><th style={s.th}>Balance</th></tr></thead>
+              <thead><tr><th style={s.th}>Name</th><th style={s.th}>Email</th><th style={s.th}>Balance</th></tr></thead>
               <tbody>
                 {(stats?.users || []).map((u: any) => (
                   <tr key={u.id}>
                     <td style={s.td}>{u.full_name || '—'}</td>
                     <td style={s.td}>{u.email}</td>
-                    <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 11 }}>{u.id}</td>
                     <td style={s.td}>${(u.total_balance || 0).toFixed(2)}</td>
                   </tr>
                 ))}
@@ -211,9 +210,9 @@ export default function AdminPage() {
       {tab === 'password' && (
         <div style={s.card}>
           <div style={s.cardTitle}>🔑 Change User Password</div>
-          <p style={{ color: '#6b7280', marginBottom: 16 }}>Force-change any user's password. Use the User ID from the Users table.</p>
+          <p style={{ color: '#6b7280', marginBottom: 16 }}>Force-change any user's password using their email address.</p>
           <div style={s.formRow}>
-            <input style={s.input} placeholder="User ID (UUID)" value={pwdUserId} onChange={e => setPwdUserId(e.target.value)} />
+            <input style={s.input} placeholder="User Email (e.g. test@gmail.com)" value={pwdEmail} onChange={e => setPwdEmail(e.target.value)} />
             <input style={s.input} placeholder="New Password (min 6 chars)" type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} />
             <button style={s.btn} onClick={handlePwd}>Change Password</button>
           </div>

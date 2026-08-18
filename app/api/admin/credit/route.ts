@@ -5,12 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    const { userId, amount } = await req.json()
-    if (!userId || !amount || amount <= 0) return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+    const { email, amount } = await req.json()
+    if (!email || !amount || amount <= 0) return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
 
     const adminClient = createAdminClient()
-    const { data: profile } = await adminClient.from('profiles').select('total_balance, total_deposited').eq('id', userId).single()
+    const { data: profile } = await adminClient.from('profiles').select('id, total_balance, total_deposited').eq('email', email.toLowerCase()).single()
     if (!profile) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    const userId = profile.id;
 
     await adminClient.from('profiles').update({
       total_balance: (profile.total_balance || 0) + amount,
