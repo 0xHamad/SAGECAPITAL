@@ -1,13 +1,15 @@
 'use client'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+
+const ADMIN_PASSWORD = 'sage7860'
 
 export default function AdminPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [authorized, setAuthorized] = React.useState(false)
-  const [loading, setLoading] = React.useState(true)
+  const [inputPwd, setInputPwd] = React.useState('')
+  const [pwdError, setPwdError] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
   const [stats, setStats] = React.useState<any>(null)
   const [tab, setTab] = React.useState('overview')
   const [search, setSearch] = React.useState('')
@@ -18,21 +20,51 @@ export default function AdminPage() {
   const [newPwd, setNewPwd] = React.useState('')
   const [pwdMsg, setPwdMsg] = React.useState('')
 
-  React.useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login'); return }
-      const res = await fetch('/api/admin/stats')
-      if (res.status === 403) { router.push('/dashboard'); return }
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-        setAuthorized(true)
-      }
-      setLoading(false)
+  const handleLogin = async () => {
+    setPwdError('')
+    if (inputPwd !== ADMIN_PASSWORD) {
+      setPwdError('❌ Incorrect password')
+      return
     }
-    init()
-  }, [])
+    setLoading(true)
+    const res = await fetch('/api/admin/stats')
+    if (res.ok) {
+      setStats(await res.json())
+      setAuthorized(true)
+    } else {
+      setPwdError('❌ Failed to load admin data')
+    }
+    setLoading(false)
+  }
+
+  // Password Gate Screen
+  if (!authorized) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '48px 40px', maxWidth: 400, width: '90%', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
+          <div style={{ color: '#fff', fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Admin Panel</div>
+          <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 32 }}>SageCapital Administration</div>
+          <input
+            type="password"
+            placeholder="Enter admin password"
+            value={inputPwd}
+            onChange={e => setInputPwd(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 15, outline: 'none', marginBottom: 12, boxSizing: 'border-box' }}
+          />
+          {pwdError && <div style={{ color: '#f87171', fontSize: 13, marginBottom: 12 }}>{pwdError}</div>}
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#7c3aed,#2563eb)', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+          >
+            {loading ? 'Loading...' : 'Access Admin Panel →'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const handleCredit = async () => {
     setCreditMsg('')
