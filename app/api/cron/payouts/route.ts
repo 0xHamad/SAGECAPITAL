@@ -73,9 +73,9 @@ export async function GET(req: Request) {
       // 3. Process Referral Commissions (Up to 3 levels)
       let currentUserId = userProfile?.referred_by
       const levels = [
-        { level: 1, pct: 0.1 / 100 },
-        { level: 2, pct: 0.01 / 100 },
-        { level: 3, pct: 0.001 / 100 }
+        { level: 1, pct: 10 / 100 },   // 10% of weekly profit
+        { level: 2, pct: 1 / 100 },    // 1% of weekly profit
+        { level: 3, pct: 0.1 / 100 }   // 0.1% of weekly profit
       ]
 
       for (const { level, pct } of levels) {

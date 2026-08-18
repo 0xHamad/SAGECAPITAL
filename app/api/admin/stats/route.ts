@@ -20,10 +20,19 @@ export async function GET() {
 
     const allUsers = users.data || []
     
-    // Calculate referral count for each user
+    // Calculate multi-level referral count for each user
     const usersWithStats = allUsers.map(u => {
-      const refCount = allUsers.filter(other => other.referred_by === u.id).length
-      return { ...u, referralCount: refCount }
+      const l1Users = allUsers.filter(other => other.referred_by === u.id)
+      const l2Users = allUsers.filter(other => l1Users.some(l1 => l1.id === other.referred_by))
+      const l3Users = allUsers.filter(other => l2Users.some(l2 => l2.id === other.referred_by))
+      
+      return { 
+        ...u, 
+        referralCount: l1Users.length,
+        refCountL1: l1Users.length,
+        refCountL2: l2Users.length,
+        refCountL3: l3Users.length
+      }
     })
 
     return NextResponse.json({

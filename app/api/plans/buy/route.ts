@@ -62,30 +62,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to activate plan' }, { status: 500 })
     }
 
-    // Pay referral commissions (3 levels, on plan price)
-    let referrerId = profile.referred_by
-    for (let level = 0; level < 3 && referrerId; level++) {
-      const { data: referrer } = await adminClient
-        .from('profiles').select('id, referred_by, total_balance, referral_income').eq('id', referrerId).single()
-      if (!referrer) break
-
-      const commission = price * REFERRAL_RATES[level]
-      await adminClient.from('profiles').update({
-        total_balance: (referrer.total_balance || 0) + commission,
-        referral_income: (referrer.referral_income || 0) + commission,
-      }).eq('id', referrer.id)
-
-      await adminClient.from('referral_commissions').insert({
-        earner_id: referrer.id,
-        source_id: session.user.id,
-        plan_id: newPlan.id,
-        level: level + 1,
-        percentage: REFERRAL_RATES[level],
-        amount: commission,
-      })
-
-      referrerId = referrer.referred_by
-    }
+    // Commission logic has been moved to weekly payouts
 
     return NextResponse.json({ success: true, planName, price, newBalance: profile.total_balance - price })
   } catch (err: any) {

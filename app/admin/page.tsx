@@ -156,7 +156,7 @@ export default function AdminPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={s.table}>
               <thead>
-                <tr>{['Name', 'Email', 'Balance', 'Deposited', 'Ref Code', 'Referrals', 'Ref Earnings', 'Joined'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                <tr>{['Name', 'Email', 'Balance', 'Deposited', 'Ref Code', 'Refs (L1/L2/L3)', 'Ref Earnings', 'Joined'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {filteredUsers.map((u: any) => (
@@ -166,7 +166,9 @@ export default function AdminPage() {
                     <td style={{ ...s.td, color: '#059669', fontWeight: 700 }}>${(u.total_balance || 0).toFixed(2)}</td>
                     <td style={s.td}>${(u.total_deposited || 0).toFixed(2)}</td>
                     <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12 }}>{u.referral_code}</td>
-                    <td style={{ ...s.td, fontWeight: 600, color: '#6d28d9' }}>{u.referralCount || 0}</td>
+                    <td style={{ ...s.td, fontWeight: 600, color: '#6d28d9', fontSize: 13 }}>
+                      {u.refCountL1 || 0} <span style={{color: '#9ca3af', fontWeight: 400}}>/</span> {u.refCountL2 || 0} <span style={{color: '#9ca3af', fontWeight: 400}}>/</span> {u.refCountL3 || 0}
+                    </td>
                     <td style={{ ...s.td, color: '#059669' }}>${(u.referral_income || 0).toFixed(2)}</td>
                     <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
