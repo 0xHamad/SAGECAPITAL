@@ -78,11 +78,17 @@ export async function GET(req: Request) {
 
     for (const rpc of RPC_URLS) {
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        
         const res = await fetch(rpc, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(rpcPayload)
+          body: JSON.stringify(rpcPayload),
+          signal: controller.signal
         })
+        clearTimeout(timeoutId)
+        
         const json = await res.json()
         if (json && json.result) {
           data = json
@@ -90,7 +96,7 @@ export async function GET(req: Request) {
           break
         }
       } catch (e) {
-        console.warn(`RPC ${rpc} failed, trying next...`)
+        console.warn(`RPC ${rpc} failed or timed out, trying next...`)
       }
     }
 
@@ -121,11 +127,17 @@ export async function GET(req: Request) {
                 }
                 
                 try {
+                  const controller = new AbortController()
+                  const timeoutId = setTimeout(() => controller.abort(), 5000)
+
                   const blockRes = await fetch(workingRpc, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(blockPayload)
+                    body: JSON.stringify(blockPayload),
+                    signal: controller.signal
                   })
+                  clearTimeout(timeoutId)
+
                   const blockData = await blockRes.json()
                   if (blockData.result && blockData.result.timestamp) {
                     const txTimeMs = parseInt(blockData.result.timestamp, 16) * 1000
