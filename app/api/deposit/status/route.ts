@@ -61,9 +61,9 @@ export async function GET(req: Request) {
     }
 
     const RPC_URLS = [
-      'https://bsc-rpc.publicnode.com',
       'https://bsc-dataseed.binance.org/',
-      'https://1rpc.io/bnb'
+      'https://bsc-mainnet.public.blastapi.io',
+      'https://bsc.meowrpc.com'
     ]
 
     const rpcPayload = {
@@ -91,8 +91,13 @@ export async function GET(req: Request) {
         clearTimeout(timeoutId)
         
         const json = await res.json()
+        if (json.error) {
+          console.warn(`RPC ${rpc} error:`, json.error.message)
+          continue // Try next RPC
+        }
+        
         rpcSuccess = true;
-        if (json && json.result) {
+        if (json.result) {
           data = json
           workingRpc = rpc
           break
