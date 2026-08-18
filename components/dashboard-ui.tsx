@@ -191,7 +191,42 @@ export function Dashboard({ styles }: { styles: ReturnType<typeof useStyles> }) 
   <section className={styles.tableCard}><div className={styles.sectionTitle}><Title3>Recent Activity</Title3><Button appearance="subtle">See history</Button></div><table className={styles.table}><tbody>{userData.recentActivity.length ? userData.recentActivity.map(row => <tr key={`${row.description}-${row.date}`}><td className={styles.td}><CheckmarkCircle24Regular /> <strong>{row.description}</strong><br /><Caption1 className={styles.muted}>{row.sub}</Caption1></td><td className={mergeClasses(styles.td, styles.green)}>{row.amount}</td><td className={mergeClasses(styles.td, styles.muted)}>{row.date}</td><td className={styles.td}><Badge appearance="tint" color="success">{row.status}</Badge></td></tr>) : <tr><td className={styles.td} colSpan={4}>No recent activity yet.</td></tr>}</tbody></table></section>
 </> }
 
-export function Plans({ styles }: { styles: ReturnType<typeof useStyles> }) { return <><section className={styles.hero}><div className={styles.globe} /><div className={styles.heroContent}><Badge appearance="tint" color="success">⚡ Simple, automated investing</Badge><div className={styles.heroTitle}>Choose a Plan — Auto Trading Starts Immediately</div><Body1 className={styles.heroText}>Put your capital to work with a plan designed around your goals. Weekly returns are credited automatically.</Body1></div></section><div className={styles.info}><strong>⚡ How it works: </strong>Your plan runs automated crypto trading on SageCapital's engine. Each week, the engine generates a random return between your plan's minimum and maximum percentage. Returns are credited every 7 days automatically.</div><div className={styles.planGrid}>{[['Basic', '$10', '0.1%', '#7041d5'], ['Starter', '$50', '0.5%', '#7041d5'], ['Standard', '$100', '1.0%', '#7041d5'], ['Advanced', '$200', '2.0%', '#7041d5'], ['Pro', '$500', '5.0%', '#7041d5'], ['Business', '$1000', '10%', '#7041d5'], ['Enterprise', '$5000', '20%', '#7041d5']].map(([name, price, referral, color], i) => <div className={styles.planCard} style={{ borderTop: `3px solid ${color}` }} key={name}><div className={styles.metricTop}><Badge appearance="tint" style={{ color }}> {i === 4 ? '★ Most Popular' : i === 5 ? '🔥 Best Value' : i === 6 ? '🏆 Elite' : 'Tier ' + (i + 1)}</Badge><Add24Regular /></div><Subtitle1>{name}</Subtitle1><Title2>{price}</Title2><div className={styles.planAccent} style={{ color }}>5% – 15%</div><Body2>👥 Refer & earn {referral} of profit</Body2><Button appearance="primary" icon={<ArrowRight24Regular />}>Buy {name}</Button></div>)}</div></> }
+export function Plans({ styles }: { styles: ReturnType<typeof useStyles> }) { 
+  const [loading, setLoading] = React.useState('')
+  const [error, setError] = React.useState('')
+  const [success, setSuccess] = React.useState('')
+
+  const handleBuy = async (planName: string) => {
+    setLoading(planName)
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch('/api/plans/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planName })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSuccess(`Successfully purchased ${planName} plan!`)
+        setTimeout(() => window.location.reload(), 2000)
+      } else {
+        setError(data.error || 'Failed to purchase plan')
+      }
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading('')
+    }
+  }
+
+  return <><section className={styles.hero}><div className={styles.globe} /><div className={styles.heroContent}><Badge appearance="tint" color="success">⚡ Simple, automated investing</Badge><div className={styles.heroTitle}>Choose a Plan — Auto Trading Starts Immediately</div><Body1 className={styles.heroText}>Put your capital to work with a plan designed around your goals. Weekly returns are credited automatically.</Body1></div></section>
+  <div className={styles.info}><strong>⚡ How it works: </strong>Your plan runs automated crypto trading on SageCapital's engine. Each week, the engine generates a random return between your plan's minimum and maximum percentage. Returns are credited every 7 days automatically.</div>
+  
+  {error && <div style={{ color: 'red', textAlign: 'center', margin: '10px 0' }}>{error}</div>}
+  {success && <div style={{ color: 'green', textAlign: 'center', margin: '10px 0' }}>{success}</div>}
+  
+  <div className={styles.planGrid}>{[['Basic', '$10', '0.1%', '#7041d5'], ['Starter', '$50', '0.5%', '#7041d5'], ['Standard', '$100', '1.0%', '#7041d5'], ['Advanced', '$200', '2.0%', '#7041d5'], ['Pro', '$500', '5.0%', '#7041d5'], ['Business', '$1000', '10%', '#7041d5'], ['Enterprise', '$5000', '20%', '#7041d5']].map(([name, price, referral, color], i) => <div className={styles.planCard} style={{ borderTop: `3px solid ${color}` }} key={name}><div className={styles.metricTop}><Badge appearance="tint" style={{ color }}> {i === 4 ? '★ Most Popular' : i === 5 ? '🔥 Best Value' : i === 6 ? '🏆 Elite' : 'Tier ' + (i + 1)}</Badge><Add24Regular /></div><Subtitle1>{name}</Subtitle1><Title2>{price}</Title2><div className={styles.planAccent} style={{ color }}>5% – 15%</div><Body2>👥 Refer & earn {referral} of profit</Body2><Button appearance="primary" icon={<ArrowRight24Regular />} onClick={() => handleBuy(name)} disabled={loading === name}>{loading === name ? 'Processing...' : `Buy ${name}`}</Button></div>)}</div></> }
 
 export function Wallet({ styles, copied, copyLink }: { styles: ReturnType<typeof useStyles>; copied: boolean; copyLink: () => void; }) {
   const { userData } = useDashboard()

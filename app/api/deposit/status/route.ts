@@ -138,14 +138,14 @@ export async function GET(req: Request) {
 
               // B. Update user balance
               const { data: userData } = await adminClient
-                .from('users')
+                .from('profiles')
                 .select('total_balance, total_deposited')
                 .eq('id', session.user.id)
                 .single()
 
               if (userData) {
                 await adminClient
-                  .from('users')
+                  .from('profiles')
                   .update({
                     total_balance: (userData.total_balance || 0) + amount,
                     total_deposited: (userData.total_deposited || 0) + amount
