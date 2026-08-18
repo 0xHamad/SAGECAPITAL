@@ -667,8 +667,10 @@ export function Referrals({ styles, copied, copyLink }: { styles: ReturnType<typ
           <div style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, letterSpacing: 2 }}>{userData.referralCode || '—'}</div>
         </div>
         <div className={styles.metric}>
-          <Caption1 className={styles.muted}>Total Referrals</Caption1>
-          <div className={styles.metricValue}>{userData.referralCount}</div>
+          <Caption1 className={styles.muted}>Total Referrals (L1 / L2 / L3)</Caption1>
+          <div className={styles.metricValue}>
+            {userData.refCountL1} <span style={{color: '#9ca3af', fontWeight: 400}}>/</span> {userData.refCountL2} <span style={{color: '#9ca3af', fontWeight: 400}}>/</span> {userData.refCountL3}
+          </div>
         </div>
         <div className={styles.metric}>
           <Caption1 className={styles.muted}>Total Commission Earned</Caption1>

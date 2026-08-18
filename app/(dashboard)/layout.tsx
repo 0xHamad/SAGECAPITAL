@@ -20,6 +20,9 @@ export default function DashboardPageLayout({ children }: { children: React.Reac
     activePlans: [] as Array<{ name: string; amount: number; returnRange: string; lastWeekPct: number; lastWeekEarned: number }>,
     recentActivity: [] as Array<{ description: string; sub: string; amount: string; date: string; status: string }>,
     referralCount: 0,
+    refCountL1: 0,
+    refCountL2: 0,
+    refCountL3: 0,
     referralCode: '',
     activeDeposit: null as any,
   })
@@ -98,11 +101,17 @@ export default function DashboardPageLayout({ children }: { children: React.Reac
 
           // Load referral count via API to bypass RLS
           let refCount = 0
+          let refCountL1 = 0
+          let refCountL2 = 0
+          let refCountL3 = 0
           try {
             const statsRes = await fetch('/api/user/stats')
             if (statsRes.ok) {
               const statsData = await statsRes.json()
               refCount = statsData.referralCount || 0
+              refCountL1 = statsData.l1Count || 0
+              refCountL2 = statsData.l2Count || 0
+              refCountL3 = statsData.l3Count || 0
             }
           } catch (e) {}
 
@@ -143,6 +152,9 @@ export default function DashboardPageLayout({ children }: { children: React.Reac
             activePlans: activePlansMapped,
             recentActivity: activity.sort(() => Math.random() - 0.5).slice(0, 5),
             referralCount: refCount || 0,
+            refCountL1: refCountL1 || 0,
+            refCountL2: refCountL2 || 0,
+            refCountL3: refCountL3 || 0,
             referralCode: profile.referral_code || '',
             activeDeposit: activeDeposit,
           })
