@@ -19,6 +19,9 @@ export default function AdminPage() {
   const [pwdEmail, setPwdEmail] = React.useState('')
   const [newPwd, setNewPwd] = React.useState('')
   const [pwdMsg, setPwdMsg] = React.useState('')
+  const [returnsEmail, setReturnsEmail] = React.useState('')
+  const [returnsWeeks, setReturnsWeeks] = React.useState('')
+  const [returnsMsg, setReturnsMsg] = React.useState('')
 
   const handleLogin = async () => {
     setPwdError('')
@@ -75,6 +78,28 @@ export default function AdminPage() {
     const d = await res.json()
     setCreditMsg(res.ok ? '✅ Balance credited!' : `❌ ${d.error}`)
     if (res.ok) { setCreditEmail(''); setCreditAmount(''); const r = await fetch('/api/admin/stats'); if (r.ok) setStats(await r.json()) }
+  }
+
+  const handleReturns = async () => {
+    setReturnsMsg('Processing returns... Please wait.')
+    try {
+      const res = await fetch('/api/admin/add-returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: returnsEmail, weeks: Number(returnsWeeks), password })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setReturnsMsg(`✅ ${data.message}`)
+        setReturnsEmail('')
+        setReturnsWeeks('')
+        fetchStats()
+      } else {
+        setReturnsMsg(`❌ Error: ${data.error}`)
+      }
+    } catch (e: any) {
+      setReturnsMsg(`❌ Error: ${e.message}`)
+    }
   }
 
   const handlePwd = async () => {
@@ -136,11 +161,12 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div style={s.tabs}>
-        {['overview', 'users', 'credit', 'password', 'withdrawals'].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ ...s.tabBtn, ...(tab === t ? s.tabActive : {}) }}>
-            {t === 'overview' ? '📊 Overview' : t === 'users' ? '👤 Users' : t === 'credit' ? '💳 Manual Credit' : t === 'password' ? '🔑 Change Password' : '💸 Withdrawals'}
-          </button>
-        ))}
+        <button style={{ ...s.tabBtn, ...(tab === 'overview' ? s.tabActive : {}) }} onClick={() => setTab('overview')}>📊 Overview</button>
+        <button style={{ ...s.tabBtn, ...(tab === 'users' ? s.tabActive : {}) }} onClick={() => setTab('users')}>👥 Users</button>
+        <button style={{ ...s.tabBtn, ...(tab === 'credit' ? s.tabActive : {}) }} onClick={() => setTab('credit')}>💳 Manual Credit</button>
+        <button style={{ ...s.tabBtn, ...(tab === 'returns' ? s.tabActive : {}) }} onClick={() => setTab('returns')}>📈 Add Returns</button>
+        <button style={{ ...s.tabBtn, ...(tab === 'password' ? s.tabActive : {}) }} onClick={() => setTab('password')}>🔑 Change Password</button>
+        <button style={{ ...s.tabBtn, ...(tab === 'withdrawals' ? s.tabActive : {}) }} onClick={() => setTab('withdrawals')}>💸 Withdrawals {pendingWithdrawals.length > 0 && `(${pendingWithdrawals.length})`}</button>
       </div>
 
       {/* Tab: Users Table */}
@@ -207,6 +233,20 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Tab: Add Returns */}
+      {tab === 'returns' && (
+        <div style={s.card}>
+          <div style={s.cardTitle}>📈 Add Weekly Returns</div>
+          <p style={{ color: '#6b7280', marginBottom: 16 }}>Instantly add multiple weeks of returns to a user's active plans. This automatically generates a random profit (5-15%) per week and distributes referral commissions.</p>
+          <div style={s.formRow}>
+            <input style={s.input} placeholder="User Email (e.g. test@gmail.com)" value={returnsEmail} onChange={e => setReturnsEmail(e.target.value)} />
+            <input style={s.input} placeholder="Number of Weeks (e.g. 4)" type="number" value={returnsWeeks} onChange={e => setReturnsWeeks(e.target.value)} />
+            <button style={{...s.btn, background: '#059669', borderColor: '#059669'}} onClick={handleReturns}>Process Returns</button>
+          </div>
+          {returnsMsg && <div style={{ marginTop: 12, padding: '10px 16px', background: returnsMsg.includes('✅') ? '#d1fae5' : '#fee2e2', borderRadius: 8 }}>{returnsMsg}</div>}
         </div>
       )}
 
